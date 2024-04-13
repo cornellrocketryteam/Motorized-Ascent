@@ -5,17 +5,19 @@
 
 AccelStepper stepper(1, pul, dir); // 1 specificies that a stepper driver is being used
  
+bool apogee = false;
+
 void setup(){  
   // --- Velocity ---
   stepper.setMaxSpeed(4000); // 4000 steps/second is the maximum reliable limit for an arduino driving a stepper
-  // corrosponds to max rotation of 20 RPS = 1,200 RPM
+  // corresponds to max rotation of 20 RPS = 1,200 RPM
   // assume a radius of 11.94 cm
-  // corrosponds to max speed of 15 m/s
+  // corresponds to max speed of 15 m/s
   
   // --- Acceleration ---
   // max acceleration is 9.803 m/s^2
   // 9.803 m/s = 13.071 rev/s = 2614 steps/second
-  stepper.setAcceleration(2614);
+  stepper.setAcceleration(200); // This was changed
 
   stepper.setCurrentPosition(0);
 
@@ -72,7 +74,7 @@ void loop(){
         Serial.print("Moving up by ");
         Serial.println(increment_distance);
       } else if (incoming_byte == 44){ // .
-        // raise stepper by increment
+        // lower stepper by decrement
         stepper.move(-increment_distance/winch_circumnference * 200);
         Serial.print("Moving down by ");
         Serial.println(increment_distance);
@@ -85,7 +87,7 @@ void loop(){
       } else if (incoming_byte == 113) { // q
         // launch stepper
         launch_flag = 1;
-        stepper.move(25000);
+        stepper.move(6400); // This was changed
 
         Serial.println("Launch triggered!");
         Serial.print("Accelerating to ");
@@ -107,12 +109,23 @@ void loop(){
   // Launch parameter
   
   if (launch_flag != 0){
-    if (stepper.speed() >= 4000){
-      Serial.println("Hit max upward speed. Decelerating...");
-      stepper.move(-25000);
-    } else if (stepper.speed() <= -4000){
-      Serial.println("Hit downward speed. Stopping...");
-      stepper.stop();
+    if (stepper.currentPosition() >= 7000) {
+      Serial.println("Apogee");
+      apogee = true;
+      stepper.setMaxSpeed(2000);
+      stepper.moveTo(0);
     }
+    else if (!apogee && stepper.currentPosition() >= 6000) {
+      Serial.println("Decelerating...");
+      stepper.setMaxSpeed(200);
+      stepper.moveTo(7400);
+    }
+    // if (stepper.speed() >= 4000){
+    //   Serial.println("Hit max upward speed. Decelerating...");
+    //   stepper.move(-25000);
+    // } else if (stepper.speed() <= -4000){
+    //   Serial.println("Hit downward speed. Stopping...");
+    //   stepper.stop();
+    // }
   }
 }
